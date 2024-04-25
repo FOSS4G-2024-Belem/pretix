@@ -3,20 +3,20 @@ production: localecompile staticfiles compress
 LNGS:=`find pretix/locale/ -mindepth 1 -maxdepth 1 -type d -printf "-l %f "`
 
 localecompile:
-	./manage.py compilemessages
+	python manage.py compilemessages
 
 localegen:
-	./manage.py makemessages --keep-pot --ignore "pretix/static/npm_dir/*" $(LNGS)
-	./manage.py makemessages --keep-pot -d djangojs --ignore "pretix/static/npm_dir/*" --ignore "pretix/helpers/*" --ignore "pretix/static/jsi18n/*" --ignore "pretix/static/jsi18n/*" --ignore "pretix/static.dist/*" --ignore "data/*" --ignore "pretix/static/rrule/*" --ignore "build/*" $(LNGS)
+	python manage.py makemessages --keep-pot --ignore "pretix/static/npm_dir/*" $(LNGS)
+	python manage.py makemessages --keep-pot -d djangojs --ignore "pretix/static/npm_dir/*" --ignore "pretix/helpers/*" --ignore "pretix/static/jsi18n/*" --ignore "pretix/static/jsi18n/*" --ignore "pretix/static.dist/*" --ignore "data/*" --ignore "pretix/static/rrule/*" --ignore "build/*" $(LNGS)
 
 staticfiles: jsi18n
-	./manage.py collectstatic --noinput
+	python manage.py collectstatic --noinput
 
 compress: npminstall
-	./manage.py compress
+	python manage.py compress
 
 jsi18n: localecompile
-	./manage.py compilejsi18n
+	python manage.py compilejsi18n
 
 test:
 	py.test tests

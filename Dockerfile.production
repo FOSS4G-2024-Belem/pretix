@@ -1,0 +1,103 @@
+FROM python:3.11-bookworm AS build-backend
+
+
+RUN apt-get update && \
+    apt-get install -y  --no-install-recommends --no-install-suggests \
+            build-essential \
+            gettext \
+            git \
+            nodejs \
+            npm \
+            libffi-dev \ 
+            libjpeg-dev \
+            libmemcached-dev \
+            libpq-dev \
+            libssl-dev \
+            libxml2-dev \
+            libxslt1-dev \
+            libmaxminddb-dev \
+            zlib1g-dev && \
+    apt-get autoremove && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY deployment/docker/production_settings.py /pretix/src/production_settings.py
+COPY pyproject.toml /pretix/pyproject.toml
+COPY _build /pretix/_build
+COPY src /pretix/src
+
+WORKDIR /pretix
+
+SHELL [ "/bin/bash", "-c" ]
+
+RUN python -m venv --symlinks --prompt pretix --upgrade-deps venv && \
+    source venv/bin/activate && \
+    pip3 install --no-cache-dir \
+        wheel && \
+    PRETIX_DOCKER_BUILD=TRUE pip install --no-cache-dir \
+        -e ".[memcached]" \
+        gunicorn django-extensions ipython supervisor && \
+    ( cd src/; make production )
+
+
+FROM python:3.11-slim-bookworm AS release
+
+WORKDIR /pretix
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends --no-install-suggests \
+            gettext \
+            locales \
+            nginx \
+            sudo \
+            libffi8 \
+            libjpeg62-turbo \
+            libmemcached11 \
+            libpq5 \
+            libssl3 \
+            libxml2 \
+            libxslt1.1 \
+            libmaxminddb0 \
+            zlib1g && \
+    apt-get autoremove && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN dpkg-reconfigure locales &&  \
+    locale-gen C.UTF-8 &&  \
+    /usr/sbin/update-locale LANG=C.UTF-8 && \
+    mkdir /etc/pretix && \
+    mkdir /data && \
+    useradd -ms /bin/bash -d /pretix -u 15371 pretixuser && \
+    echo 'pretixuser ALL=(ALL) NOPASSWD:SETENV: /pretix/venv/bin/supervisord' >> /etc/sudoers.d/pretix-supervisord && \
+    mkdir /static && \
+    mkdir /etc/supervisord
+
+COPY --from=build-backend /pretix/src ./src
+COPY --from=build-backend /pretix/venv ./venv
+
+COPY deployment/docker/pretix.bash /usr/local/bin/pretix
+COPY deployment/docker/supervisord /etc/supervisord
+COPY deployment/docker/supervisord.all.conf /etc/supervisord.all.conf
+COPY deployment/docker/supervisord.web.conf /etc/supervisord.web.conf
+COPY deployment/docker/nginx.conf /etc/nginx/nginx.conf
+COPY deployment/docker/nginx-max-body-size.conf /etc/nginx/conf.d/nginx-max-body-size.conf
+
+ENV LC_ALL=C.UTF-8 \
+    DJANGO_SETTINGS_MODULE=production_settings
+
+WORKDIR /pretix/src
+
+# only works on bash
+RUN echo ". /pretix/venv/bin/activate" >> /etc/bash.bashrc && \
+    chmod +x /usr/local/bin/pretix && \
+    rm /etc/nginx/sites-enabled/default && \
+    rm -f pretix.cfg &&  \
+    mkdir -p data && \
+    chown -R pretixuser:pretixuser /data data 
+
+WORKDIR /pretix
+
+USER pretixuser
+VOLUME ["/etc/pretix", "/data"]
+EXPOSE 80
+ENTRYPOINT ["pretix"]
+CMD ["all"]
