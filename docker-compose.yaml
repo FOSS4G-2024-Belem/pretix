@@ -1,0 +1,43 @@
+version: '3.8'
+services:
+  pretix:
+    image: docker.io/pretix/standalone:stable-prod
+    build:
+      dockerfile: dockerfile.production
+    ports:
+      - 80:80
+    volumes:
+      - pretix-data:/data
+      - pretix-conf:/etc/pretix
+      # - ./conf/pretix.cfg:/etc/pretix/pretix.cfg:ro
+
+  db:
+    image: docker.io/library/postgres:13-alpine
+    environment:
+      POSTGRES_PASSWORD: pretixtest
+      POSTGRES_USER: pretix
+      POSTGRES_DB: pretix
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  mailserver:
+    image: docker.io/library/python:3.11-alpine
+    environment:
+      # https://docs.python.org/3.10/using/cmdline.html#envvar-PYTHONWARNINGS
+      # PYTHONWARNINGS: ignore
+      PYTHONUNBUFFERED: 1
+    ports:
+      - "1025"
+    command: ["python", "-m", "smtpd", "-n", "-c", "DebuggingServer", "-n", "0.0.0.0:1025"]
+  
+  redis:
+    image: docker.io/library/redis:7-alpine
+    command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
+    volumes:
+      - redis-data:/data
+
+volumes:
+  postgres-data:
+  pretix-data:
+  pretix-conf:
+  redis-data:
