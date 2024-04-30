@@ -1,8 +1,6 @@
 #!/bin/bash
-if [[ -z "$VIRTUAL_ENV" || "$VIRTUAL_ENV" != "/pretix/venv" ]]; then
-    deactivate > /dev/null 2>&1
-    source /pretix/venv/bin/activate
-fi
+deactivate > /dev/null 2>&1 || true
+source /pretix/venv/bin/activate
 
 cd /pretix/src
 (
