@@ -47,6 +47,7 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends --no-install-suggests \
             gettext \
             locales \
+            tini \
             nginx \
             sudo \
             libffi8 \
@@ -99,5 +100,5 @@ WORKDIR /pretix
 USER pretixuser
 VOLUME ["/etc/pretix", "/data"]
 EXPOSE 80
-ENTRYPOINT ["pretix"]
+ENTRYPOINT ["tini", "--", "pretix"]
 CMD ["all"]
