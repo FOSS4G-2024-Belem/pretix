@@ -38,7 +38,6 @@ RUN python -m venv --symlinks --prompt pretix --upgrade-deps venv && \
         gunicorn django-extensions ipython supervisor && \
     ( cd src/; make production )
 
-
 FROM python:3.11-slim-bookworm AS release
 
 WORKDIR /pretix
@@ -47,9 +46,8 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends --no-install-suggests \
             gettext \
             locales \
-            tini \
             nginx \
-            sudo \
+            procps \
             libffi8 \
             libjpeg62-turbo \
             libmemcached11 \
@@ -68,7 +66,6 @@ RUN dpkg-reconfigure locales &&  \
     mkdir /etc/pretix && \
     mkdir /data && \
     useradd -ms /bin/bash -d /pretix -u 15371 pretixuser && \
-    echo 'pretixuser ALL=(ALL) NOPASSWD:SETENV: /pretix/venv/bin/supervisord' >> /etc/sudoers.d/pretix-supervisord && \
     mkdir /static && \
     mkdir /etc/supervisord
 
@@ -93,12 +90,12 @@ RUN echo ". /pretix/venv/bin/activate" >> /etc/bash.bashrc && \
     rm /etc/nginx/sites-enabled/default && \
     rm -f pretix.cfg &&  \
     mkdir -p data && \
-    chown -R pretixuser:pretixuser /data data 
+    chown -R pretixuser:pretixuser /data data
 
 WORKDIR /pretix
 
 USER pretixuser
 VOLUME ["/etc/pretix", "/data"]
-EXPOSE 80
-ENTRYPOINT ["tini", "--", "pretix"]
+EXPOSE 8080
+ENTRYPOINT ["pretix"]
 CMD ["all"]

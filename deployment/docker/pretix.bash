@@ -28,11 +28,11 @@ cd /pretix/src
     fi
 
     if [ "$1" == "all" ]; then
-        exec sudo -E /pretix/venv/bin/supervisord -n -c /etc/supervisord.all.conf
+        exec /pretix/venv/bin/supervisord -n -c /etc/supervisord.all.conf
     fi
 
     if [ "$1" == "web" ]; then
-        exec sudo -E /pretix/venv/bin/supervisord -n -c /etc/supervisord.web.conf
+        exec /pretix/venv/bin/supervisord -n -c /etc/supervisord.web.conf
     fi
 
     if [ "$1" == "webworker" ]; then
@@ -52,6 +52,11 @@ cd /pretix/src
 
     if [ "$1" == "upgrade" ]; then
         exec python3 -m pretix updatestyles
+    fi
+
+    # Add bash for debug
+    if [ "$1" == "bash" ]; then
+        exec /bin/bash
     fi
 )
 

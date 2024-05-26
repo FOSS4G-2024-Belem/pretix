@@ -343,6 +343,13 @@ if HAS_CELERY:
         CELERY_BROKER_TRANSPORT_OPTIONS = loads(config.get('celery', 'broker_transport_options'))
     if HAS_CELERY_BACKEND_TRANSPORT_OPTS:
         CELERY_RESULT_BACKEND_TRANSPORT_OPTIONS = loads(config.get('celery', 'backend_transport_options'))
+
+    celery_num_workers = os.environ.get('CELERY_NUM_WORKERS')
+    
+    if celery_num_workers:
+        CELERY_WORKER_CONCURRENCY = int(celery_num_workers)
+    
+    CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 else:
     CELERY_TASK_ALWAYS_EAGER = True
 
